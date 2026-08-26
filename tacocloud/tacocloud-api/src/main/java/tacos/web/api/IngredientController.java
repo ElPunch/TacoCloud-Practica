@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -57,14 +59,29 @@ public class IngredientController {
   }
 
   @PostMapping
-  public Mono<ResponseEntity<Ingredient>> postIngredient(@RequestBody Mono<Ingredient> ingredient) {
-    return ingredient
-        .flatMap(repo::save)
-        .map(i -> {
-          HttpHeaders headers = new HttpHeaders();
-          headers.setLocation(URI.create("http://localhost:8080/ingredients/" + i.getId()));
-          return new ResponseEntity<Ingredient>(i, headers, HttpStatus.CREATED);
-        });
+  public Mono<ResponseEntity<Ingredient>> postIngredient(
+          @RequestBody Mono<Ingredient> ingredient,
+          ServerHttpRequest request) {
+
+      return ingredient
+              .flatMap(repo::save)
+              .map(i -> {
+
+                  URI location = UriComponentsBuilder
+                          .fromUri(request.getURI())
+                          .path("/{id}")
+                          .buildAndExpand(i.getId())
+                          .toUri();
+
+                  HttpHeaders headers = new HttpHeaders();
+                  headers.setLocation(location);
+
+                  return new ResponseEntity<Ingredient>(
+                          i,
+                          headers,
+                          HttpStatus.CREATED
+                  );
+              });
   }
 
   @DeleteMapping("/{id}")
