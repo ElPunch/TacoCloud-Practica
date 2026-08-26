@@ -68,8 +68,12 @@ public class IngredientController {
   }
 
   @DeleteMapping("/{id}")
-  public void deleteIngredient(@PathVariable String id) {
-    repo.deleteById(id);
+  public Mono<ResponseEntity<Void>> deleteIngredient(@PathVariable String id) {
+
+    return repo.findById(id)
+      .flatMap(ingredient -> repo.deleteById(id)
+      .thenReturn(ResponseEntity.noContent().build()))
+      .defaultIfEmpty(ResponseEntity.notFound().build());
   }
 
 }
